@@ -239,43 +239,28 @@ def extract_allocation_data(recommendations):
         return ""
 
 
-def plot_stock_performance(allocation_data):
-    # Plot historical performance of the portfolio compared to Nifty50
-    if not allocation_data:
-        st.warning("No allocation data available to plot performance.")
+def plot_stock_performance(filtered_stocks):
+    # Plot historical performance of the filtered stocks
+    if not filtered_stocks:
+        st.warning("No stocks available to plot performance.")
         return
 
-    tickers = allocation_data.tickers
-    allocations = allocation_data.allocations
-
-    st.write("\n### Historical Performance of Portfolio vs Nifty50")
+    st.write("\n### Historical Performance of Recommended Stocks")
     data = pd.DataFrame()
-    nifty50 = yf.Ticker("^NSEI").history(period="6mo")["Close"]
 
-    if nifty50.empty:
-        st.warning("No benchmark data available to plot.")
-        return
-
-    data["Nifty50"] = (nifty50 / nifty50.iloc[0] - 1) * 100
-
-    portfolio_returns = pd.Series(0, index=nifty50.index)
-
-    for ticker, allocation in zip(tickers, allocations):
+    for ticker in filtered_stocks:
         stock = yf.Ticker(ticker)
         history = stock.history(period="6mo")["Close"]
         if not history.empty:
-            stock_returns = (history / history.iloc[0] - 1) * 100
-            portfolio_returns += stock_returns * allocation / 100
-
-    data["Portfolio"] = portfolio_returns
+            data[ticker] = (history / history.iloc[0] - 1) * 100
 
     if not data.empty:
         plt.figure(figsize=(10, 6))
-        plt.plot(data.index, data["Nifty50"], label="Nifty50", color="blue")
-        plt.plot(data.index, data["Portfolio"], label="Portfolio", color="green")
+        for column in data.columns:
+            plt.plot(data.index, data[column], label=column)
         plt.xlabel("Date")
         plt.ylabel("Percentage Return")
-        plt.title("Historical Performance: Portfolio vs Nifty50")
+        plt.title("Historical Performance of Recommended Stocks")
         plt.legend()
         st.pyplot(plt)
     else:
@@ -418,7 +403,7 @@ def main():
                 allocation_data = extract_allocation_data(recommendations)
                 # st.write(f"\n### Extracted Allocation Data:\n{allocation_data}")
 
-                plot_stock_performance(allocation_data)
+                plot_stock_performance(filtered_stocks)
 
 
 if __name__ == "__main__":
